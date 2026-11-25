@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Álamo | Asistente de atención</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2d2223;
+      --muted: #6b555a;
+      --wine: #70263e;
+      --wine-deep: #431625;
+      --wine-light: #f2e2e7;
+      --canvas: #eee5d9;
+      --paper: #fffdfa;
+      --cream: #f9f4ec;
+      --line: #e7d9d1;
+      --serif: Georgia, "Times New Roman", serif;
+      --sans: "Segoe UI", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-padding-top: 6rem; }
+
+    body {
+      margin: 0;
+      padding: clamp(0rem, 2.4vw, 2.25rem);
+      background: var(--canvas);
+      color: var(--ink);
+      font: 1rem/1.5 var(--sans);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    a { color: inherit; }
+    button, input { font: inherit; }
+    :focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+
+    .skip-link {
+      position: fixed;
+      z-index: 10;
+      top: .75rem;
+      left: .75rem;
+      padding: .6rem 1rem;
+      border-radius: .5rem;
+      background: var(--paper);
+      color: var(--wine);
+      transform: translateY(-200%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: 12.5rem minmax(0, 1fr);
+      max-width: 90rem;
+      min-height: calc(100vh - clamp(0rem, 4.8vw, 4.5rem));
+      margin-inline: auto;
+      border: 1px solid #e2d1c7;
+      border-radius: 1.25rem;
+      background: var(--paper);
+      box-shadow: 0 1rem 3.75rem #471d2a12;
+    }
+
+    /* Marca y navegación */
+    .rail {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      gap: 1.75rem;
+      padding: 1.75rem 1.125rem 1.25rem;
+      border-radius: 1.2rem 0 0 1.2rem;
+      background: linear-gradient(155deg, #581e31 0%, var(--wine-deep) 70%);
+      color: #fff4ea;
+    }
+
+    .rail::before, .rail::after {
+      position: absolute;
+      z-index: -1;
+      right: -7rem;
+      bottom: -5.5rem;
+      width: 16rem;
+      height: 16rem;
+      border: 1px solid #fff4ea20;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .rail::after {
+      right: -5.5rem;
+      bottom: -6.5rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: .7rem;
+      padding: 0 .45rem 1.55rem;
+      border-bottom: 1px solid #fff4ea2c;
+    }
+
+    .brand-mark {
+      display: grid;
+      flex: 0 0 2.5rem;
+      height: 2.5rem;
+      place-items: center;
+      border-radius: .75rem;
+      background: #f0dbcb;
+      color: var(--wine-deep);
+    }
+
+    .brand-mark::before {
+      width: 1.2rem;
+      height: 1.2rem;
+      background: currentColor;
+      clip-path: polygon(50% 0, 100% 100%, 65% 82%, 50% 100%, 35% 82%, 0 100%);
+      content: "";
+    }
+
+    .brand-name {
+      display: block;
+      font: 600 1.6rem/1 var(--serif);
+    }
+
+    .brand-caption {
+      display: block;
+      color: #f0d1d6;
+      font-size: .78rem;
+      margin-top: .22rem;
+    }
+
+    .rail nav { display: grid; gap: .35rem; }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: .6rem;
+      min-height: 2.65rem;
+      padding: .55rem .65rem;
+      border-radius: .55rem;
+      color: #f6e6e7;
+      font-size: .875rem;
+      text-decoration: none;
+    }
+
+    .nav-link--primary, .nav-link:hover {
+      background: #fff4ea18;
+      color: #fffaf5;
+    }
+
+    .nav-link--primary { box-shadow: inset 2px 0 #e9b4c4; }
+
+    .demo {
+      align-self: flex-start;
+      margin: auto 0 0 .4rem;
+      padding: .28rem .55rem;
+      border: 1px solid #fff4ea40;
+      border-radius: .4rem;
+      color: #f8dad5;
+      font-size: .77rem;
+    }
+
+    /* Iconos de interfaz */
+    .icon {
+      display: inline-block;
+      position: relative;
+      flex: 0 0 1rem;
+      width: 1rem;
+      height: 1rem;
+      color: inherit;
+    }
+
+    .icon--chat::before {
+      position: absolute;
+      inset: 2px 1px 3px;
+      border: 1.5px solid currentColor;
+      border-radius: 3px;
+      content: "";
+    }
+
+    .icon--chat::after {
+      position: absolute;
+      bottom: 1px;
+      left: 4px;
+      width: 4px;
+      height: 4px;
+      border: solid currentColor;
+      border-width: 0 0 1.5px 1.5px;
+      transform: skewY(-32deg);
+      content: "";
+    }
+
+    .icon--file::before {
+      position: absolute;
+      inset: 1px 3px;
+      border: 1.5px solid currentColor;
+      border-radius: 2px;
+      content: "";
+    }
+
+    .icon--file::after {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      width: 4px;
+      height: 1px;
+      background: currentColor;
+      box-shadow: 0 3px currentColor;
+      content: "";
+    }
+
+    .icon--person::before {
+      position: absolute;
+      inset: 1px 5px auto;
+      height: 6px;
+      border: 1.5px solid currentColor;
+      border-radius: 50%;
+      content: "";
+    }
+
+    .icon--person::after {
+      position: absolute;
+      inset: auto 2px 1px;
+      height: 6px;
+      border: 1.5px solid currentColor;
+      border-radius: 5px 5px 2px 2px;
+      content: "";
+    }
+
+    .icon--sparkle::before, .icon--sparkle::after {
+      position: absolute;
+      background: currentColor;
+      clip-path: polygon(50% 0, 64% 36%, 100% 50%, 64% 64%, 50% 100%, 36% 64%, 0 50%, 36% 36%);
+      content: "";
+    }
+
+    .icon--sparkle::before { inset: 0 3px 3px 0; }
+    .icon--sparkle::after { inset: 9px 0 0 9px; }
+
+    /* Cabecera y aviso fijado al desplazarse */
+    .main { min-width: 0; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: .9rem 1.5rem;
+      padding: 1.5rem clamp(1rem, 3vw, 2.25rem) 1.3rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: .85rem;
+    }
+
+    .assistant-mark, .avatar {
+      display: grid;
+      flex-shrink: 0;
+      place-items: center;
+      background: var(--wine);
+      color: #fff1e6;
+    }
+
+    .assistant-mark {
+      width: 3rem;
+      height: 3rem;
+      border-radius: .85rem;
+    }
+
+    .assistant-mark .icon { transform: scale(1.35); }
+
+    h1 {
+      color: var(--wine-deep);
+      font: 600 clamp(1.65rem, 3.15vw, 2.15rem)/1.1 var(--serif);
+      letter-spacing: -.035em;
+    }
+
+    .subtitle {
+      margin-top: .25rem;
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: .4rem;
+      width: fit-content;
+      min-height: 2.45rem;
+      padding: .4rem .75rem;
+      border: 1px solid #c9a3af;
+      border-radius: .55rem;
+      background: var(--paper);
+      color: var(--wine);
+      font-size: .875rem;
+      font-weight: 650;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .button:hover { background: var(--wine-light); }
+
+    .warning {
+      position: sticky;
+      z-index: 2;
+      top: 0;
+      display: flex;
+      align-items: center;
+      gap: .75rem;
+      margin: .9rem clamp(1rem, 3vw, 2.25rem) 0;
+      padding: .65rem .85rem;
+      border: 1px solid #ddbdc8;
+      border-left: .25rem solid var(--wine);
+      border-radius: .65rem;
+      background: #f7e9ed;
+      color: #551f32;
+    }
+
+    .warning-mark {
+      display: grid;
+      flex: 0 0 1.85rem;
+      height: 1.85rem;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--wine);
+      color: white;
+      font-weight: 700;
+    }
+
+    .warning strong { display: block; }
+    .warning p { font-size: .9rem; }
+
+    /* Conversación */
+    .content {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 18.25rem);
+      gap: 1.5rem;
+      padding: 1.1rem clamp(1rem, 3vw, 2.25rem) 1.5rem;
+    }
+
+    .conversation {
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: .95rem;
+      background: var(--cream);
+    }
+
+    .conversation-header {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .75rem 1.1rem;
+      border-bottom: 1px solid var(--line);
+      border-radius: .9rem .9rem 0 0;
+      background: var(--paper);
+      color: var(--wine-deep);
+    }
+
+    .conversation-header h2 { font-size: .95rem; font-weight: 700; }
+
+    .messages {
+      display: grid;
+      gap: .8rem;
+      margin: 0;
+      padding: 1rem 1.1rem;
+      list-style: none;
+    }
+
+    .exchange {
+      display: grid;
+      justify-items: start;
+      gap: .55rem;
+    }
+
+    .message-user {
+      justify-self: end;
+      width: fit-content;
+      max-width: 88%;
+      padding: .55rem .8rem;
+      border: 1px solid #e4c9d2;
+      border-radius: .75rem .75rem .2rem .75rem;
+      background: var(--wine-light);
+      color: var(--wine-deep);
+    }
+
+    .message-assistant {
+      display: grid;
+      grid-template-columns: 1.85rem minmax(0, 1fr);
+      gap: .55rem;
+      width: min(96%, 38rem);
+    }
+
+    .avatar {
+      width: 1.85rem;
+      height: 1.85rem;
+      border-radius: .52rem;
+    }
+
+    .reply {
+      min-width: 0;
+      padding: .58rem .75rem .55rem;
+      border: 1px solid var(--line);
+      border-radius: .2rem .75rem .75rem;
+      background: var(--paper);
+    }
+
+    .author {
+      margin-bottom: .15rem;
+      color: var(--wine);
+      font-size: .8rem;
+      font-weight: 700;
+    }
+
+    .citation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: .1rem .35rem;
+      margin-top: .45rem;
+      padding-top: .38rem;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    .citation .icon {
+      align-self: center;
+      flex-basis: .85rem;
+      margin-right: .02rem;
+    }
+
+    .citation a {
+      color: var(--wine);
+      font-weight: 650;
+      text-decoration-thickness: 1px;
+      text-underline-offset: .16em;
+    }
+
+    .reply .handoff {
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      margin-top: .4rem;
+      color: var(--wine);
+      font-size: .875rem;
+      font-weight: 700;
+      text-decoration-thickness: 1px;
+      text-underline-offset: .19em;
+    }
+
+    .composer {
+      padding: .65rem .85rem;
+      border-top: 1px solid var(--line);
+      border-radius: 0 0 .9rem .9rem;
+      background: var(--paper);
+    }
+
+    .composer-shell {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      padding: .3rem .35rem .3rem .75rem;
+      border: 1px solid var(--line);
+      border-radius: .65rem;
+      background: #f8f1e9;
+    }
+
+    .composer input {
+      min-width: 0;
+      flex: 1 1 auto;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      opacity: 1;
+    }
+
+    .composer input::placeholder { color: var(--muted); opacity: 1; }
+
+    .composer button {
+      min-height: 2rem;
+      padding: .2rem .72rem;
+      border: 1px solid #d8b8c3;
+      border-radius: .43rem;
+      background: #e9d3da;
+      color: #633248;
+      font-size: .875rem;
+      font-weight: 650;
+    }
+
+    /* Referencias y orientación a un asesor */
+    .context {
+      display: grid;
+      align-content: start;
+      gap: .9rem;
+    }
+
+    .support {
+      padding: 1rem;
+      border: 1px solid #dfc2ca;
+      border-radius: .95rem;
+      background: #f7e9ed;
+    }
+
+    .support-mark {
+      display: grid;
+      width: 2rem;
+      height: 2rem;
+      margin-bottom: .6rem;
+      place-items: center;
+      border-radius: .55rem;
+      background: #eed6de;
+      color: var(--wine);
+    }
+
+    .context h2 {
+      color: var(--wine-deep);
+      font: 600 1.3rem/1.15 var(--serif);
+    }
+
+    .context p {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .support p { margin-top: .38rem; }
+
+    .support-channel {
+      display: block;
+      margin-top: .75rem;
+      padding-top: .6rem;
+      border-top: 1px solid #dfc2ca;
+      color: var(--wine);
+      font-size: .875rem;
+      font-weight: 700;
+    }
+
+    .references {
+      padding: 1rem;
+      border: 1px solid var(--line);
+      border-radius: .95rem;
+      background: var(--cream);
+    }
+
+    .reference {
+      margin-top: .65rem;
+      padding: .65rem .7rem;
+      border: 1px solid var(--line);
+      border-radius: .55rem;
+      background: var(--paper);
+    }
+
+    .reference h3 {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      color: var(--wine);
+      font-size: .875rem;
+    }
+
+    .reference p { margin-top: .25rem; }
+
+    .support:target, .reference:target {
+      outline: 2px solid var(--wine);
+      outline-offset: 2px;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      overflow: hidden;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 67rem) {
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+
+      .rail {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: .55rem 1rem;
+        padding: .7rem 1rem;
+        border-radius: 1.2rem 1.2rem 0 0;
+      }
+
+      .brand { padding: 0; border: 0; }
+      .rail nav { display: flex; flex-wrap: wrap; }
+      .demo { align-self: center; margin: 0 0 0 auto; }
+    }
+
+    @media (max-width: 47rem) {
+      body { padding: 0; }
+      .workspace { border: 0; border-radius: 0; }
+      .rail { border-radius: 0; }
+      .rail nav { order: 1; flex-basis: 100%; gap: .25rem; }
+      .nav-link { padding-inline: .45rem; min-height: 2.35rem; }
+      .topbar { flex-wrap: wrap; padding-block: .9rem; }
+      .content { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+      .message-assistant { width: 100%; }
+    }
+
+    @media (max-width: 25rem) {
+      .nav-link { font-size: .8rem; gap: .25rem; }
+      .messages { padding-inline: .7rem; }
+      .message-user { max-width: 96%; }
+      .warning, .content, .topbar { overflow-wrap: anywhere; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#conversacion">Ir a la conversación</a>
+
+  <div class="workspace">
+    <aside class="rail" aria-label="Centro de ayuda de Álamo">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <span class="brand-name">Álamo</span>
+          <span class="brand-caption">Centro de ayuda</span>
+        </div>
+      </div>
+
+      <nav aria-label="Navegación del centro de ayuda">
+        <a class="nav-link nav-link--primary" href="#conversacion">
+          <span class="icon icon--chat" aria-hidden="true"></span> Conversación
+        </a>
+        <a class="nav-link" href="#fuentes">
+          <span class="icon icon--file" aria-hidden="true"></span> Fuentes
+        </a>
+        <a class="nav-link" href="#atencion-humana">
+          <span class="icon icon--person" aria-hidden="true"></span> Atención humana
+        </a>
+      </nav>
+
+      <p class="demo">Vista de demostración</p>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="identity">
+          <span class="assistant-mark" aria-hidden="true"><span class="icon icon--sparkle"></span></span>
+          <div>
+            <h1>Asistente de atención</h1>
+            <p class="subtitle">Consultas sobre pedidos y entregas</p>
+          </div>
+        </div>
+        <a class="button" href="#atencion-humana">
+          <span class="icon icon--person" aria-hidden="true"></span> Hablar con una persona
+        </a>
+      </header>
+
+      <div class="warning" role="note" aria-label="Aviso de verificación">
+        <span class="warning-mark" aria-hidden="true">!</span>
+        <div>
+          <strong>La IA puede cometer errores.</strong>
+          <p>Verifica la información en las fuentes antes de usarla.</p>
+        </div>
+      </div>
+
+      <div class="content">
+        <section class="conversation" id="conversacion" aria-labelledby="titulo-conversacion">
+          <header class="conversation-header">
+            <span class="icon icon--chat" aria-hidden="true"></span>
+            <h2 id="titulo-conversacion">Conversación de ejemplo</h2>
+          </header>
+
+          <ol class="messages" role="list">
+            <li class="exchange">
+              <p class="message-user"><span class="visually-hidden">Tú. </span>¿Dónde puedo ver el estado de mi pedido?</p>
+              <div class="message-assistant">
+                <span class="avatar" aria-hidden="true"><span class="icon icon--sparkle"></span></span>
+                <div class="reply">
+                  <p class="author">Asistente de IA</p>
+                  <p>Entra a <strong>Mis pedidos</strong> y selecciona tu pedido. Allí verás su estado y, si ya salió, el enlace de seguimiento.</p>
+                  <p class="citation">
+                    <span class="icon icon--file" aria-hidden="true"></span>
+                    <span>Fuente</span> <a href="#fuente-entregas">Guía de entregas</a>
+                  </p>
+                </div>
+              </div>
+            </li>
+
+            <li class="exchange">
+              <p class="message-user"><span class="visually-hidden">Tú. </span>¿Puedes cambiar la dirección de entrega?</p>
+              <div class="message-assistant">
+                <span class="avatar" aria-hidden="true"><span class="icon icon--sparkle"></span></span>
+                <div class="reply">
+                  <p class="author">Asistente de IA</p>
+                  <p>Un asesor debe revisar el estado del envío y decidir si se puede cambiar la dirección. Te derivo al equipo de atención.</p>
+                  <p class="citation">
+                    <span class="icon icon--file" aria-hidden="true"></span>
+                    <span>Fuente</span> <a href="#fuente-atencion">Protocolo de atención</a>
+                  </p>
+                  <a class="handoff" href="#atencion-humana">
+                    <span class="icon icon--person" aria-hidden="true"></span> Consultar a un asesor
+                  </a>
+                </div>
+              </div>
+            </li>
+
+            <li class="exchange">
+              <p class="message-user"><span class="visually-hidden">Tú. </span>¿Me puedes confirmar si mi pedido llega hoy?</p>
+              <div class="message-assistant">
+                <span class="avatar" aria-hidden="true"><span class="icon icon--sparkle"></span></span>
+                <div class="reply">
+                  <p class="author">Asistente de IA</p>
+                  <p>No tengo información verificada para confirmar la fecha de entrega. Un asesor puede consultar el estado del envío y revisarlo contigo.</p>
+                  <p class="citation">
+                    <span class="icon icon--file" aria-hidden="true"></span>
+                    <span>Fuente de la derivación</span> <a href="#fuente-atencion">Protocolo de atención</a>
+                  </p>
+                  <a class="handoff" href="#atencion-humana">
+                    <span class="icon icon--person" aria-hidden="true"></span> Consultar a un asesor
+                  </a>
+                </div>
+              </div>
+            </li>
+          </ol>
+
+          <div class="composer" aria-label="Compositor de ejemplo">
+            <div class="composer-shell">
+              <label class="visually-hidden" for="mensaje">Mensaje de ejemplo</label>
+              <input id="mensaje" type="text" placeholder="Escribe tu mensaje…" disabled>
+              <button type="button" disabled>Enviar</button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="context" aria-label="Ayuda y verificación">
+          <section class="support" id="atencion-humana" aria-labelledby="titulo-atencion">
+            <span class="support-mark" aria-hidden="true"><span class="icon icon--person"></span></span>
+            <h2 id="titulo-atencion">Atención humana</h2>
+            <p>Un asesor revisa solicitudes importantes y ayuda a confirmar datos que la IA desconoce.</p>
+            <span class="support-channel">Equipo de servicio al cliente</span>
+          </section>
+
+          <section class="references" id="fuentes" aria-labelledby="titulo-fuentes">
+            <h2 id="titulo-fuentes">Fuentes de ejemplo</h2>
+
+            <article class="reference" id="fuente-entregas">
+              <h3><span class="icon icon--file" aria-hidden="true"></span> Guía de entregas</h3>
+              <p>En <strong>Mis pedidos</strong> se muestra el estado de cada pedido. El enlace de seguimiento aparece cuando el pedido sale.</p>
+            </article>
+
+            <article class="reference" id="fuente-atencion">
+              <h3><span class="icon icon--file" aria-hidden="true"></span> Protocolo de atención</h3>
+              <p>Un asesor revisa el estado del envío antes de autorizar cambios de dirección. También atiende las consultas cuya fecha de entrega la IA no puede confirmar.</p>
+            </article>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
